@@ -8,13 +8,18 @@ O FinSight é uma aplicação front-end multipágina (MPA): cada tela é um arqu
 finsight/
 ├── index.html              # Porta de entrada — redireciona para o login
 ├── supabase_schema.sql     # Schema do banco (Postgres / Supabase)
+├── DOCS.md                 # Documentação de uma fase anterior (protótipo localStorage)
+├── INTEGRACAO.md           # Guia de um back-end Spring Boot planejado (não adotado)
+├── .gitignore              # Ignora .vercel
+├── .vscode/
+│   └── settings.json       # Porta do Live Server (5501)
 ├── css/
 │   ├── global.css          # Design system: variáveis, reset, layout, componentes
 │   └── modals.css          # Sistema de modais (bottom sheets)
 ├── js/
 │   ├── supabase.js         # Cliente Supabase + funções de acesso ao banco (db*)
 │   ├── modals.js           # Comportamentos globais: modais, tema, sidebar, etc.
-│   └── app.js              # Script carregado em todas as páginas internas
+│   └── app.js              # Resquício do protótipo antigo (função solta, sem uso real)
 └── pages/
     ├── login.html          # Entrar
     ├── register.html       # Criar conta
@@ -34,7 +39,8 @@ finsight/
 - **`css/modals.css`** — todo o sistema de modais, que aparecem como *bottom sheets* (deslizam de baixo para cima) com overlay e blur.
 - **`js/supabase.js`** — inicializa o cliente Supabase e concentra o acesso a dados em funções `db*`. As páginas chamam essas funções; não falam SQL diretamente.
 - **`js/modals.js`** — comportamentos que valem para o app inteiro (detalhado abaixo).
-- **`js/app.js`** — script presente em todas as páginas internas (carregado junto de `supabase.js` e `modals.js`).
+- **`js/app.js`** — carregado em todas as páginas internas, mas hoje só tem uma função solta (`addTransacao`) sobrando do protótipo antigo baseado em `localStorage`. Não participa do fluxo atual.
+- **`DOCS.md` / `INTEGRACAO.md`** — documentos históricos (protótipo em `localStorage` e plano de back-end Spring Boot, respectivamente). Ver [Tecnologias](wiki-tecnologias.md).
 - **`pages/`** — uma página por tela. Cada uma carrega o CSS, os scripts compartilhados e tem, ao final, um `<script>` com a lógica específica daquela tela.
 
 ## Como a navegação funciona
@@ -90,6 +96,13 @@ Todos os modais seguem a mesma marcação (`.modal-overlay` > `.modal-sheet` com
 ### Lógica compartilhada vs. lógica de página
 
 `modals.js` cuida do que é transversal: tema, sidebar do desktop, dados do usuário na appbar, seletores de ícone/cor, força de senha, datas padrão para hoje, etc. Já a lógica específica de cada tela (carregar dados, renderizar listas, salvar formulários) fica num `<script>` no fim do próprio HTML, sempre chamando as funções `db*` de `supabase.js`.
+
+### Camada de acesso a dados centralizada
+
+Nenhuma página escreve query do Supabase espalhada pelo código. Tudo passa por `js/supabase.js`, que expõe funções `db*` por entidade (auth, contas, tipos, metas, categorias, transações). As páginas importam essas funções e chamam pelo nome. Dois detalhes do desenho dessa camada:
+
+- **Joins aninhados**: as leituras já trazem os relacionamentos prontos. `dbGetContas` traz cada `conta` com seus `tipo`; `dbGetTodasTransacoes` traz cada `transacao` com `categoria` e `tipo(conta)` embutidos. Isso evita várias idas ao banco no render.
+- **Cascata feita na mão**: como as exclusões precisam remover filhos antes do pai, funções como `dbDeleteConta` e `dbDeleteMeta` apagam as `transacao` (e os `tipo`) associados antes de apagar o registro principal.
 
 ### Dados ricos guardados como JSON
 

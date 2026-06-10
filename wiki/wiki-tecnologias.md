@@ -51,6 +51,15 @@ O app usa o **`localStorage`** para guardar estado entre páginas:
 | `finsight-theme` | Preferência de tema (`'dark'` / `'light'`) |
 | `finsight-pin` | PIN de 4 dígitos da área de segurança |
 
+## Documentos do repositório
+
+Além do código, o repositório carrega dois documentos que contam a história do projeto:
+
+- **`DOCS.md`** — documentação de uma fase anterior, quando o app era um protótipo visual com dados *hardcoded* e persistência só em `localStorage`. Boa parte do que está lá (telas como UI sem lógica, helpers `saveData`/`loadData`) foi superada pela versão atual ligada ao Supabase. Serve como registro histórico.
+- **`INTEGRACAO.md`** — guia de integração que planejava um back-end em **Spring Boot** (API em `localhost:8080`) na frente do Supabase, com contrato de endpoints e um helper `js/api.js`. Esse caminho não foi o adotado: a versão final fala direto com o Supabase via `supabase-js`, sem a API Java no meio. Útil para entender as decisões consideradas.
+
+Vale registrar também que **`js/app.js`**, embora seja carregado em todas as páginas internas, hoje contém apenas uma função solta (`addTransacao`) que usa helpers de `localStorage` daquela fase antiga — é um resquício, não a lógica atual. Quem manda hoje é `js/supabase.js` mais o `<script>` de cada página.
+
 ## Resumo da stack
 
 | Camada | Tecnologia |

@@ -22,7 +22,7 @@ cd finsight
 
 ## 3. Configurar as credenciais
 
-As funções de acesso ao banco ficam em `js/supabase.js`, que inicializa o cliente Supabase. Garanta que ele esteja apontando para o **URL** e a **chave anon** do seu projeto (encontradas em *Project Settings → API* no painel do Supabase).
+As funções de acesso ao banco ficam em `js/supabase.js`, que inicializa o cliente Supabase. O arquivo já vem com um `SUPABASE_URL` e uma `SUPABASE_KEY` (chave anon) preenchidos no topo. Para apontar para o **seu** projeto, troque esses dois valores pelos do seu Supabase (encontrados em *Project Settings → API* no painel).
 
 ## 4. Servir os arquivos
 
@@ -36,6 +36,7 @@ python -m http.server 5500
 npx serve
 
 # VS Code: extensão "Live Server" → botão "Go Live"
+# (o projeto traz .vscode/settings.json com a porta 5501 do Live Server)
 ```
 
 ## 5. Abrir no navegador
