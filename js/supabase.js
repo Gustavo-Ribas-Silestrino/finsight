@@ -166,6 +166,22 @@ async function dbDeleteCategoria(id_categoria) {
   if (error) throw error;
 }
 
+/* ─── Transferências ─── */
+// Transferências são marcadas com uma categoria especial (tipo: 'transfer'),
+// permitindo identificar e excluir as duas pernas (despesa + receita) dos totais de receita/despesa.
+function isTransferTx(tx) {
+  try { return JSON.parse(tx.categoria?.nome_categoria || '{}').tipo === 'transfer'; } catch { return false; }
+}
+
+async function dbGetOrCreateCategoriaTransferencia() {
+  const cats = await dbGetCategorias();
+  const existente = cats.find(c => {
+    try { return JSON.parse(c.nome_categoria).tipo === 'transfer'; } catch { return false; }
+  });
+  if (existente) return existente;
+  return await dbAddCategoria(JSON.stringify({ nome: 'Transferência', icone: 'swap_horiz', cor: '#38bdf8', tipo: 'transfer' }));
+}
+
 /* ─── Transações ─── */
 async function dbGetTransacoes(id_tipo) {
   const { data, error } = await _db

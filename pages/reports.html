@@ -217,6 +217,7 @@
     function txFiltradas() {
       const { de, ate } = getIntervalo() || {};
       return _allTx.filter(tx => {
+        if (isTransferTx(tx)) return false;
         const d = tx.data_transacao || '';
         if (de  && d < de)  return false;
         if (ate && d > ate) return false;
@@ -480,7 +481,8 @@
 
       // Popular selects do modal de filtros
       const optsCat = '<option value="todas">Todas as categorias</option>' +
-        _allCats.map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
+        _allCats.filter(c => parseCat(c.nome_categoria).tipo !== 'transfer')
+          .map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
       const optsConta = '<option value="todas">Todas as contas</option>' +
         _allContas.filter(c => c.tipo?.length).map(c => { const tp = getTipoPadrao(c); return `<option value="${tp.id_tipo}">${c.nome_banco}</option>`; }).join('');
       document.getElementById('filter_categoria').innerHTML = optsCat;

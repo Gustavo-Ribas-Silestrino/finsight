@@ -154,7 +154,7 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <h2 class="modal-title">Nova Despesa</h2>
+        <h2 id="modal_new_expense_title" class="modal-title">Nova Despesa</h2>
         <button class="modal-close" data-close="modal_new_expense"><span class="material-symbols-outlined">close</span></button>
       </div>
       <div class="modal-body">
@@ -218,7 +218,7 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <h2 class="modal-title">Nova Receita</h2>
+        <h2 id="modal_new_income_title" class="modal-title">Nova Receita</h2>
         <button class="modal-close" data-close="modal_new_income"><span class="material-symbols-outlined">close</span></button>
       </div>
       <div class="modal-body">
@@ -277,36 +277,28 @@
           <div class="amount-field_label">Valor</div>
           <div class="amount-field_wrap">
             <span class="amount-field_currency">R$</span>
-            <input type="text" class="amount-field_input" placeholder="0,00" inputmode="decimal">
+            <input id="transf_valor" type="text" class="amount-field_input" placeholder="0,00" inputmode="decimal">
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">De</label>
-          <select class="form-select">
-            <option>Conta Nubank</option>
-            <option>Poupança</option>
-            <option>Carteira física</option>
-          </select>
+          <select id="transf_de" class="form-select"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Para</label>
-          <select class="form-select">
-            <option>Poupança</option>
-            <option>Conta Nubank</option>
-            <option>Carteira física</option>
-          </select>
+          <select id="transf_para" class="form-select"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
-          <input type="date" class="form-input">
+          <input id="transf_data" type="date" class="form-input">
         </div>
         <div class="form-group">
           <label class="form-label">Descrição (opcional)</label>
-          <input type="text" class="form-input" placeholder="Ex: Reserva de emergência">
+          <input id="transf_desc" type="text" class="form-input" placeholder="Ex: Reserva de emergência">
         </div>
         <div class="modal-actions">
           <button class="btn-modal-cancel" data-close="modal_new_transfer">Cancelar</button>
-          <button class="btn-modal-primary">
+          <button id="btn_salvar_transf" class="btn-modal-primary">
             <span class="material-symbols-outlined" style="font-size:18px;">check</span>Transferir
           </button>
         </div>
@@ -421,7 +413,7 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn-modal-cancel" data-close="modal_tx_detail">
+          <button class="btn-modal-cancel" onclick="editarTransacao()">
             <span class="material-symbols-outlined" style="font-size:16px;">edit</span>Editar
           </button>
           <button class="btn-modal-danger" onclick="closeModal('modal_tx_detail');openModal('modal_confirm_delete')">
@@ -493,6 +485,7 @@
       renderTransacoes();
     });
     let _txDetalhe = null; // transação aberta no modal de detalhe
+    let _editandoId = null; // id da transação sendo editada (null = nova transação)
 
     function parseCat(raw) {
       try { return JSON.parse(raw); } catch { return { nome: raw, icone: 'category', cor: '#7c5cfc' }; }
@@ -511,7 +504,8 @@
     // ─── Selects ───
     function popularSelects() {
       const contasValidas = _contas.filter(c => c.tipo && c.tipo.length);
-      const optsCat   = _cats.map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
+      const optsCat   = _cats.filter(c => parseCat(c.nome_categoria).tipo !== 'transfer')
+        .map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
       const optsConta = contasValidas.map(c => {
         const tp = getTipoPadrao(c);
         return `<option value="${tp.id_tipo}">${c.nome_banco}</option>`;
@@ -525,13 +519,13 @@
         const el = document.getElementById(id);
         if (el) el.innerHTML = semCat + optsCat;
       });
-      ['exp_conta','inc_conta'].forEach(id => {
+      ['exp_conta','inc_conta','transf_de','transf_para'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = semConta + optsConta;
       });
 
       // Datas padrão = hoje
-      ['exp_data','inc_data'].forEach(id => {
+      ['exp_data','inc_data','transf_data'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.value) el.value = hoje();
       });
@@ -543,10 +537,12 @@
       return _txAll.filter(tx => {
         // Filtra pelo mês selecionado
         if (!(tx.data_transacao || '').startsWith(mesPrefixo)) return false;
-        const isCredito = tx.debitocredito;
-        if (_txFiltro === 'receitas'  && !isCredito) return false;
-        if (_txFiltro === 'despesas'  && isCredito)  return false;
-        if (_txFiltro === 'pendentes' && tx.efetividade) return false;
+        const isCredito  = tx.debitocredito;
+        const isTransf   = isTransferTx(tx);
+        if (_txFiltro === 'receitas'       && (!isCredito || isTransf)) return false;
+        if (_txFiltro === 'despesas'       && (isCredito  || isTransf)) return false;
+        if (_txFiltro === 'transferências' && !isTransf) return false;
+        if (_txFiltro === 'pendentes'      && tx.efetividade) return false;
         if (_txSearch) {
           const q = _txSearch.toLowerCase();
           if (!tx.titulo.toLowerCase().includes(q) && !(tx.descricao||'').toLowerCase().includes(q)) return false;
@@ -560,10 +556,10 @@
       const lista = txFiltradas();
       const mesPrefixo = getTxMesPrefixo();
 
-      // Totais do mês selecionado
+      // Totais do mês selecionado (transferências não somam, pois não são entrada/saída real)
       let totalRec = 0, totalDesp = 0;
       _txAll.forEach(tx => {
-        if ((tx.data_transacao||'').startsWith(mesPrefixo)) {
+        if ((tx.data_transacao||'').startsWith(mesPrefixo) && !isTransferTx(tx)) {
           if (tx.debitocredito) totalRec  += parseFloat(tx.valor);
           else                   totalDesp += parseFloat(tx.valor);
         }
@@ -600,7 +596,7 @@
             const cor      = catData.cor   || '#7c5cfc';
             const icone    = catData.icone || 'swap_horiz';
             const isCredit = tx.debitocredito;
-            const amtClass = isCredit ? 'income' : (tx.efetividade ? 'expense' : 'expense pending');
+            const amtClass = isTransferTx(tx) ? 'transfer' : (isCredit ? 'income' : (tx.efetividade ? 'expense' : 'expense pending'));
             const amtSign  = isCredit ? '+' : '-';
             const checkCls = tx.efetividade ? 'tx-check done' : 'tx-check';
             const contaNome = tx.tipo?.conta?.nome_banco || '';
@@ -638,12 +634,13 @@
       const cor     = catData.cor   || '#7c5cfc';
       const icone   = catData.icone || 'swap_horiz';
       const isCredit = tx.debitocredito;
+      const isTransf = isTransferTx(tx);
 
       document.querySelector('.tx-detail-icon-wrap').style.background = cor + '22';
       document.querySelector('.tx-detail-icon-wrap').style.color = cor;
       document.querySelector('.tx-detail-icon-wrap .material-symbols-outlined').textContent = icone;
       document.querySelector('.tx-detail-amount').textContent = (isCredit ? '+' : '-') + 'R$ ' + fmtBRL(tx.valor);
-      document.querySelector('.tx-detail-amount').className = 'tx-detail-amount ' + (isCredit ? 'income' : 'expense');
+      document.querySelector('.tx-detail-amount').className = 'tx-detail-amount ' + (isTransf ? 'transfer' : (isCredit ? 'income' : 'expense'));
       document.querySelector('.tx-detail-name').textContent = tx.titulo;
 
       const rows = document.querySelectorAll('.tx-detail-row .tx-detail-row-value');
@@ -654,8 +651,85 @@
         rows[3].textContent = tx.efetividade ? 'Efetivada' : 'Pendente';
         rows[3].style.color = tx.efetividade ? 'var(--clr-income)' : 'var(--clr-expense)';
       }
+
+      // Edição não se aplica a transferências (cada perna está vinculada a uma conta diferente)
+      const btnEditar = document.querySelector('#modal_tx_detail .btn-modal-cancel');
+      if (btnEditar) btnEditar.style.display = isTransf ? 'none' : '';
+
       openModal('modal_tx_detail');
     }
+
+    // ─── Editar ───
+    function setBtnLabel(btnId, texto) {
+      document.getElementById(btnId).innerHTML =
+        `<span class="material-symbols-outlined" style="font-size:18px;">check</span>${texto}`;
+    }
+
+    function editarTransacao() {
+      if (!_txDetalhe) return;
+      const tx = _txDetalhe;
+      _editandoId = tx.id_transacao;
+      const valorStr = Number(tx.valor).toFixed(2).replace('.', ',');
+      closeModal('modal_tx_detail');
+
+      if (tx.debitocredito) {
+        document.getElementById('inc_valor').value      = valorStr;
+        document.getElementById('inc_titulo').value     = tx.titulo || '';
+        document.getElementById('inc_descricao').value  = tx.descricao || '';
+        document.getElementById('inc_categoria').value  = tx.id_categoria;
+        document.getElementById('inc_conta').value      = tx.id_tipo;
+        document.getElementById('inc_data').value       = tx.data_transacao;
+        document.getElementById('inc_efetivada').checked = tx.efetividade;
+        document.getElementById('modal_new_income_title').textContent = 'Editar Receita';
+        setBtnLabel('btn_salvar_inc', 'Salvar alterações');
+        setTimeout(() => openModal('modal_new_income'), 60);
+      } else {
+        document.getElementById('exp_valor').value      = valorStr;
+        document.getElementById('exp_titulo').value     = tx.titulo || '';
+        document.getElementById('exp_descricao').value  = tx.descricao || '';
+        document.getElementById('exp_categoria').value  = tx.id_categoria;
+        document.getElementById('exp_conta').value      = tx.id_tipo;
+        document.getElementById('exp_data').value       = tx.data_transacao;
+        document.getElementById('exp_efetivada').checked = tx.efetividade;
+        const cbParcel  = document.getElementById('cb_parcel2');
+        const parcelRow = document.getElementById('parcel_row2');
+        if (tx.quantidade_parcelas) {
+          cbParcel.checked = true;
+          parcelRow.style.display = 'flex';
+          document.getElementById('exp_parcelas').value = String(tx.quantidade_parcelas);
+        } else {
+          cbParcel.checked = false;
+          parcelRow.style.display = 'none';
+        }
+        document.getElementById('modal_new_expense_title').textContent = 'Editar Despesa';
+        setBtnLabel('btn_salvar_exp', 'Salvar alterações');
+        setTimeout(() => openModal('modal_new_expense'), 60);
+      }
+    }
+
+    function resetTxModal(tipo) {
+      _editandoId = null;
+      if (tipo === 'exp') {
+        document.getElementById('modal_new_expense_title').textContent = 'Nova Despesa';
+        setBtnLabel('btn_salvar_exp', 'Salvar');
+        limparFormExp();
+        document.getElementById('cb_parcel2').checked = false;
+        document.getElementById('parcel_row2').style.display = 'none';
+      } else {
+        document.getElementById('modal_new_income_title').textContent = 'Nova Receita';
+        setBtnLabel('btn_salvar_inc', 'Salvar');
+        limparFormInc();
+      }
+    }
+
+    // Reseta o modal ao fechar por qualquer caminho (cancelar, X, overlay, Esc)
+    ['modal_new_expense','modal_new_income'].forEach(id => {
+      const el = document.getElementById(id);
+      const tipo = id === 'modal_new_expense' ? 'exp' : 'inc';
+      new MutationObserver(() => {
+        if (!el.classList.contains('is-open')) resetTxModal(tipo);
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
 
     async function toggleEfetividade(e, id, novoValor) {
       e.stopPropagation();
@@ -700,13 +774,21 @@
 
       this.disabled = true;
       try {
-        await dbAddTransacao({ valor, data_transacao: data, descricao, titulo, id_categoria: id_cat,
-          quantidade_parcelas: parcelas, id_tipo, debitocredito: false, efetividade: efetivada,
-          data_efetividade: efetivada ? data : null });
-        // Sempre subtrai do saldo (efetivada ou não)
-        await dbUpdateSaldo(id_tipo, -valor);
+        const campos = { valor, data_transacao: data, descricao, titulo, id_categoria: id_cat,
+          quantidade_parcelas: parcelas, id_tipo, efetividade: efetivada,
+          data_efetividade: efetivada ? data : null };
+        if (_editandoId) {
+          const original = _txAll.find(t => t.id_transacao === _editandoId);
+          await dbUpdateTransacao(_editandoId, campos);
+          // Reverte o saldo da conta original e aplica na conta nova
+          if (original) await dbUpdateSaldo(original.id_tipo, parseFloat(original.valor));
+          await dbUpdateSaldo(id_tipo, -valor);
+        } else {
+          await dbAddTransacao({ ...campos, debitocredito: false });
+          // Sempre subtrai do saldo (efetivada ou não)
+          await dbUpdateSaldo(id_tipo, -valor);
+        }
         closeModal('modal_new_expense');
-        limparFormExp();
         await carregarTransacoes();
       } catch(e) { alert('Erro ao salvar: ' + e.message); }
       finally { this.disabled = false; }
@@ -732,13 +814,21 @@
 
       this.disabled = true;
       try {
-        await dbAddTransacao({ valor, data_transacao: data, descricao, titulo, id_categoria: id_cat,
-          quantidade_parcelas: null, id_tipo, debitocredito: true, efetividade: efetivada,
-          data_efetividade: efetivada ? data : null });
-        // Sempre soma ao saldo (efetivada ou não)
-        await dbUpdateSaldo(id_tipo, valor);
+        const campos = { valor, data_transacao: data, descricao, titulo, id_categoria: id_cat,
+          quantidade_parcelas: null, id_tipo, efetividade: efetivada,
+          data_efetividade: efetivada ? data : null };
+        if (_editandoId) {
+          const original = _txAll.find(t => t.id_transacao === _editandoId);
+          await dbUpdateTransacao(_editandoId, campos);
+          // Reverte o saldo da conta original e aplica na conta nova
+          if (original) await dbUpdateSaldo(original.id_tipo, -parseFloat(original.valor));
+          await dbUpdateSaldo(id_tipo, valor);
+        } else {
+          await dbAddTransacao({ ...campos, debitocredito: true });
+          // Sempre soma ao saldo (efetivada ou não)
+          await dbUpdateSaldo(id_tipo, valor);
+        }
         closeModal('modal_new_income');
-        limparFormInc();
         await carregarTransacoes();
       } catch(e) { alert('Erro ao salvar: ' + e.message); }
       finally { this.disabled = false; }
@@ -749,6 +839,52 @@
       document.getElementById('inc_data').value = hoje();
       document.getElementById('inc_efetivada').checked = true;
     }
+
+    // ─── Salvar Transferência ───
+    document.getElementById('btn_salvar_transf').addEventListener('click', async function () {
+      const valor   = parseFloat(document.getElementById('transf_valor').value.replace(',','.'));
+      const idDe    = parseInt(document.getElementById('transf_de').value);
+      const idPara  = parseInt(document.getElementById('transf_para').value);
+      const data    = document.getElementById('transf_data').value;
+      const desc    = document.getElementById('transf_desc').value.trim();
+
+      if (!valor || !idDe || !idPara || !data) { alert('Preencha todos os campos obrigatórios.'); return; }
+      if (idDe === idPara) { alert('Selecione contas diferentes para origem e destino.'); return; }
+
+      this.disabled = true;
+      try {
+        const catTransf = await dbGetOrCreateCategoriaTransferencia();
+        const contaDe   = _contas.find(c => c.tipo.some(t => t.id_tipo === idDe));
+        const contaPara = _contas.find(c => c.tipo.some(t => t.id_tipo === idPara));
+
+        await dbAddTransacao({ valor, data_transacao: data, descricao: desc,
+          titulo: `Transferência para ${contaPara?.nome_banco || ''}`,
+          id_categoria: catTransf.id_categoria, quantidade_parcelas: null, id_tipo: idDe,
+          debitocredito: false, efetividade: true, data_efetividade: data });
+        await dbAddTransacao({ valor, data_transacao: data, descricao: desc,
+          titulo: `Transferência de ${contaDe?.nome_banco || ''}`,
+          id_categoria: catTransf.id_categoria, quantidade_parcelas: null, id_tipo: idPara,
+          debitocredito: true, efetividade: true, data_efetividade: data });
+
+        await dbUpdateSaldo(idDe, -valor);
+        await dbUpdateSaldo(idPara, valor);
+
+        closeModal('modal_new_transfer');
+        await carregarTransacoes();
+      } catch(e) { alert('Erro ao transferir: ' + e.message); }
+      finally { this.disabled = false; }
+    });
+
+    function limparFormTransf() {
+      document.getElementById('transf_valor').value = '';
+      document.getElementById('transf_desc').value  = '';
+      document.getElementById('transf_data').value  = hoje();
+    }
+
+    new MutationObserver(() => {
+      const el = document.getElementById('modal_new_transfer');
+      if (!el.classList.contains('is-open')) limparFormTransf();
+    }).observe(document.getElementById('modal_new_transfer'), { attributes: true, attributeFilter: ['class'] });
 
     // ─── FAB type cards ───
     document.querySelectorAll('.fab-type-card').forEach(card => {

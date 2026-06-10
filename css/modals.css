@@ -788,6 +788,10 @@
   color: var(--income);
 }
 
+.tx-detail-amount.transfer {
+  color: var(--transfer);
+}
+
 .tx-detail-name {
   font-size: .9375rem;
   color: var(--t2);

@@ -322,36 +322,28 @@
           <div class="amount-field_label">Valor</div>
           <div class="amount-field_wrap">
             <span class="amount-field_currency">R$</span>
-            <input type="text" class="amount-field_input" placeholder="0,00" inputmode="decimal">
+            <input id="dtransf_valor" type="text" class="amount-field_input" placeholder="0,00" inputmode="decimal">
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">De</label>
-          <select class="form-select">
-            <option>Conta Nubank</option>
-            <option>Poupança</option>
-            <option>Carteira física</option>
-          </select>
+          <select id="dtransf_de" class="form-select"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Para</label>
-          <select class="form-select">
-            <option>Poupança</option>
-            <option>Conta Nubank</option>
-            <option>Carteira física</option>
-          </select>
+          <select id="dtransf_para" class="form-select"></select>
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
-          <input type="date" class="form-input">
+          <input id="dtransf_data" type="date" class="form-input">
         </div>
         <div class="form-group">
           <label class="form-label">Descrição (opcional)</label>
-          <input type="text" class="form-input" placeholder="Ex: Reserva de emergência">
+          <input id="dtransf_desc" type="text" class="form-input" placeholder="Ex: Reserva de emergência">
         </div>
         <div class="modal-actions">
           <button class="btn-modal-cancel" data-close="modal_new_transfer">Cancelar</button>
-          <button class="btn-modal-primary">
+          <button id="btn_dash_transf" class="btn-modal-primary">
             <span class="material-symbols-outlined" style="font-size:18px;">check</span>
             Transferir
           </button>
@@ -492,10 +484,10 @@
       const dataHoje = hoje();
       const dataOntem = new Date(Date.now()-86400000).toISOString().slice(0,10);
 
-      // Receitas e despesas do mês selecionado
+      // Receitas e despesas do mês selecionado (transferências não somam, pois não são entrada/saída real)
       let recMes = 0, despMes = 0;
       txAll.forEach(tx => {
-        if (!(tx.data_transacao || '').startsWith(mesAtual)) return;
+        if (!(tx.data_transacao || '').startsWith(mesAtual) || isTransferTx(tx)) return;
         if (tx.debitocredito) recMes  += parseFloat(tx.valor);
         else                   despMes += parseFloat(tx.valor);
       });
@@ -542,7 +534,7 @@
         return d.toISOString().slice(0,10);
       });
       const catSpend = {};
-      txAll.filter(tx => !tx.debitocredito && diasPizza.includes(tx.data_transacao)).forEach(tx => {
+      txAll.filter(tx => !tx.debitocredito && !isTransferTx(tx) && diasPizza.includes(tx.data_transacao)).forEach(tx => {
         const catData = parseCat(tx.categoria?.nome_categoria || '{}');
         const nome = catData.nome || 'Sem categoria';
         const cor  = catData.cor  || '#7c5cfc';
@@ -604,7 +596,7 @@
         let rec = 0, desp = 0;
         txAll.forEach(tx => {
           const partes = (tx.data_transacao || '').split('-');
-          if (parseInt(partes[0]) === m.ano && parseInt(partes[1]) === m.mes) {
+          if (parseInt(partes[0]) === m.ano && parseInt(partes[1]) === m.mes && !isTransferTx(tx)) {
             if (tx.debitocredito) rec  += parseFloat(tx.valor) || 0;
             else                   desp += parseFloat(tx.valor) || 0;
           }
@@ -672,7 +664,7 @@
           const cor       = catData.cor   || '#7c5cfc';
           const icone     = catData.icone || 'swap_horiz';
           const isCredit  = tx.debitocredito;
-          const amtClass  = isCredit ? 'income' : (tx.efetividade ? 'expense' : 'expense pending');
+          const amtClass  = isTransferTx(tx) ? 'transfer' : (isCredit ? 'income' : (tx.efetividade ? 'expense' : 'expense pending'));
           const amtSign   = isCredit ? '+' : '-';
           let metaLabel;
           if (tx.data_transacao === dataHoje) metaLabel = 'hoje';
@@ -703,7 +695,8 @@
 
     // ─── Selects nos modais ───
     function popularSelectsDash(contas, cats) {
-      const optsCat   = cats.map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
+      const optsCat   = cats.filter(c => parseCat(c.nome_categoria).tipo !== 'transfer')
+        .map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
       const optsConta = contas.filter(c => c.tipo?.length)
         .map(c => { const tp = getTipoPadrao(c); return `<option value="${tp.id_tipo}">${c.nome_banco}</option>`; }).join('');
       const semCat   = '<option value="" disabled selected>— selecione —</option>';
@@ -713,11 +706,11 @@
         const el = document.getElementById(id);
         if (el) el.innerHTML = semCat + optsCat;
       });
-      ['dexp_conta','dinc_conta'].forEach(id => {
+      ['dexp_conta','dinc_conta','dtransf_de','dtransf_para'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = semConta + optsConta;
       });
-      ['dexp_data','dinc_data'].forEach(id => {
+      ['dexp_data','dinc_data','dtransf_data'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.value) el.value = hoje();
       });
@@ -767,6 +760,52 @@
       finally { this.disabled = false; }
     });
 
+    // ─── Salvar Transferência ───
+    document.getElementById('btn_dash_transf').addEventListener('click', async function () {
+      const valor   = parseFloat(document.getElementById('dtransf_valor').value.replace(',','.'));
+      const idDe    = parseInt(document.getElementById('dtransf_de').value);
+      const idPara  = parseInt(document.getElementById('dtransf_para').value);
+      const data    = document.getElementById('dtransf_data').value;
+      const desc    = document.getElementById('dtransf_desc').value.trim();
+
+      if (!valor || !idDe || !idPara || !data) { alert('Preencha todos os campos obrigatórios.'); return; }
+      if (idDe === idPara) { alert('Selecione contas diferentes para origem e destino.'); return; }
+
+      this.disabled = true;
+      try {
+        const catTransf = await dbGetOrCreateCategoriaTransferencia();
+        const contaDe   = _dashCache.contas.find(c => c.tipo.some(t => t.id_tipo === idDe));
+        const contaPara = _dashCache.contas.find(c => c.tipo.some(t => t.id_tipo === idPara));
+
+        await dbAddTransacao({ valor, data_transacao: data, descricao: desc,
+          titulo: `Transferência para ${contaPara?.nome_banco || ''}`,
+          id_categoria: catTransf.id_categoria, quantidade_parcelas: null, id_tipo: idDe,
+          debitocredito: false, efetividade: true, data_efetividade: data });
+        await dbAddTransacao({ valor, data_transacao: data, descricao: desc,
+          titulo: `Transferência de ${contaDe?.nome_banco || ''}`,
+          id_categoria: catTransf.id_categoria, quantidade_parcelas: null, id_tipo: idPara,
+          debitocredito: true, efetividade: true, data_efetividade: data });
+
+        await dbUpdateSaldo(idDe, -valor);
+        await dbUpdateSaldo(idPara, valor);
+
+        closeModal('modal_new_transfer');
+        await initDashboard();
+      } catch(e) { alert('Erro ao transferir: ' + e.message); }
+      finally { this.disabled = false; }
+    });
+
+    function limparFormTransfDash() {
+      document.getElementById('dtransf_valor').value = '';
+      document.getElementById('dtransf_desc').value  = '';
+      document.getElementById('dtransf_data').value  = hoje();
+    }
+
+    new MutationObserver(() => {
+      const el = document.getElementById('modal_new_transfer');
+      if (!el.classList.contains('is-open')) limparFormTransfDash();
+    }).observe(document.getElementById('modal_new_transfer'), { attributes: true, attributeFilter: ['class'] });
+
     // ─── FAB ───
     document.querySelectorAll('.fab-type-card').forEach(card => {
       card.addEventListener('click', function () {
@@ -796,7 +835,7 @@
       // 1. Despesas > Receitas no mês
       let recMes = 0, despMes = 0;
       txAll.forEach(tx => {
-        if (!(tx.data_transacao||'').startsWith(mesAtual)) return;
+        if (!(tx.data_transacao||'').startsWith(mesAtual) || isTransferTx(tx)) return;
         if (tx.debitocredito) recMes  += parseFloat(tx.valor);
         else                   despMes += parseFloat(tx.valor);
       });

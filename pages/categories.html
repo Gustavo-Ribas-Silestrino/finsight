@@ -175,6 +175,7 @@
       const grid = document.getElementById('category_grid');
       const visiveis = cats.filter(c => {
         const d = parseCat(c.nome_categoria);
+        if (d.tipo === 'transfer') return false;
         if (_catFiltro === 'receita') return d.tipo === 'income';
         if (_catFiltro === 'despesa') return d.tipo === 'expense';
         return true;
