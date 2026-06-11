@@ -136,37 +136,11 @@
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">Nome</label>
-          <input type="text" class="form-input" value="Conta Nubank">
+          <input id="edit_wallet_nome" type="text" class="form-input" placeholder="Nome da carteira">
         </div>
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-select">
-            <option selected>Conta corrente</option>
-            <option>Poupança</option>
-            <option>Dinheiro físico</option>
-            <option>Investimento</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cor</label>
-          <div class="wallet-color-grid">
-            <div class="wallet-color-opt selected" data-color="#7c5cfc" style="background:#7c5cfc;"></div>
-            <div class="wallet-color-opt" data-color="#22c55e" style="background:#22c55e;"></div>
-            <div class="wallet-color-opt" data-color="#f97316" style="background:#f97316;"></div>
-            <div class="wallet-color-opt" data-color="#60a5fa" style="background:#60a5fa;"></div>
-            <div class="wallet-color-opt" data-color="#ef4444" style="background:#ef4444;"></div>
-            <div class="wallet-color-opt" data-color="#34d399" style="background:#34d399;"></div>
-          </div>
-        </div>
-        <label class="modal-checkbox-row">
-          <input type="checkbox" checked>
-          <span class="modal-checkbox-label">Carteira principal</span>
-        </label>
         <div class="modal-actions">
-          <button class="btn-modal-danger" onclick="closeModal('modal_edit_wallet');openModal('modal_delete_wallet')">
-            <span class="material-symbols-outlined" style="font-size:16px;">delete</span>Excluir
-          </button>
-          <button class="btn-modal-primary">
+          <button class="btn-modal-cancel" data-close="modal_edit_wallet">Cancelar</button>
+          <button id="btn_salvar_edit_wallet" class="btn-modal-primary">
             <span class="material-symbols-outlined" style="font-size:18px;">check</span>Salvar
           </button>
         </div>
@@ -240,9 +214,9 @@
               </div>
             </div>
             <div class="wallet-card_footer">
-              <a href="transactions.html" class="wallet-card_link">
-                <span class="material-symbols-outlined">visibility</span>Ver transações
-              </a>
+              <button class="wallet-card_link" onclick="abrirEditarWallet(${c.id_conta}, '${c.nome_banco.replace(/'/g,"\\'")}')">
+                <span class="material-symbols-outlined">edit</span>Editar
+              </button>
               <button class="wallet-card_edit" onclick="confirmarExcluirWallet(${c.id_conta}, '${c.nome_banco.replace(/'/g,"\\'")}')">
                 <span class="material-symbols-outlined">delete</span>Excluir
               </button>
@@ -279,11 +253,32 @@
         await carregarWallets();
       } catch(e) {
         closeModal('modal_delete_wallet');
-        openModal('modal_wallet_error');
+        alert('Não foi possível excluir a carteira. Tente novamente.');
       } finally {
         this.disabled = false;
         this.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">delete_forever</span>Excluir';
       }
+    });
+
+    // ─── Editar carteira ───
+    let _editWalletId = null;
+    function abrirEditarWallet(id_conta, nome) {
+      _editWalletId = id_conta;
+      document.getElementById('edit_wallet_nome').value = nome;
+      openModal('modal_edit_wallet');
+    }
+    document.getElementById('btn_salvar_edit_wallet').addEventListener('click', async function () {
+      const nome = document.getElementById('edit_wallet_nome').value.trim();
+      if (!nome) { document.getElementById('edit_wallet_nome').focus(); return; }
+      if (!_editWalletId) return;
+      this.disabled = true;
+      try {
+        await dbUpdateConta(_editWalletId, nome);
+        _editWalletId = null;
+        closeModal('modal_edit_wallet');
+        await carregarWallets();
+      } catch (e) { alert('Erro ao salvar: ' + e.message); }
+      finally { this.disabled = false; }
     });
 
     // ─── Criar carteira via modal ───

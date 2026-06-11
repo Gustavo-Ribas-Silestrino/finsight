@@ -70,6 +70,22 @@ function getTipoPadrao(conta) {
   return tipos.find(t => t.saldo_objetivo === null) || tipos[0] || null;
 }
 
+async function dbUpdateConta(id_conta, nome_banco) {
+  const { error } = await _db.from('conta').update({ nome_banco }).eq('id_conta', id_conta);
+  if (error) throw error;
+  // Mantém o nome do tipo padrão alinhado ao nome da carteira
+  const tipos  = await dbGetTipos(id_conta);
+  const padrao = tipos.find(t => t.saldo_objetivo === null);
+  if (padrao) await _db.from('tipo').update({ nome: nome_banco }).eq('id_tipo', padrao.id_tipo);
+}
+
+async function dbDeleteCliente(id_cliente) {
+  const contas = await dbGetContas(id_cliente);
+  for (const c of contas) await dbDeleteConta(c.id_conta);
+  const { error } = await _db.from('cliente').delete().eq('id_cliente', id_cliente);
+  if (error) throw error;
+}
+
 /* ─── Metas ─── */
 async function dbGetMetas(id_cliente) {
   const contas = await dbGetContas(id_cliente);
@@ -103,6 +119,16 @@ async function dbAporteMeta(id_tipo, novo_saldo) {
     .single();
   if (error) throw error;
   return data;
+}
+
+async function dbUpdateMeta(id_tipo, { nome, saldo_objetivo, saldo_atual, data_limite }) {
+  const campos = {};
+  if (nome           !== undefined) campos.nome           = nome;
+  if (saldo_objetivo !== undefined) campos.saldo_objetivo = saldo_objetivo;
+  if (saldo_atual    !== undefined) campos.saldo_atual    = saldo_atual;
+  if (data_limite    !== undefined) campos.data_limite    = data_limite;
+  const { error } = await _db.from('tipo').update(campos).eq('id_tipo', id_tipo);
+  if (error) throw error;
 }
 
 async function dbDeleteMeta(id_tipo) {

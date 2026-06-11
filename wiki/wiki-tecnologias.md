@@ -1,39 +1,38 @@
 # Tecnologias
 
-A stack do FinSight é enxuta de propósito: front-end em HTML, CSS e JavaScript puro, conversando direto com o Supabase. Não há build, bundler nem framework no meio do caminho.
+A stack do FinSight é enxuta de propósito. Front feito com HTML, CSS e JavaScript puro, conversando direto com o Supabase. Não tem etapa de build, nem bundler, nem framework no meio do caminho.
 
-## HTML, CSS e JavaScript puro (sem framework)
+## HTML, CSS e JavaScript puro, sem framework
 
-Todo o app é feito com as três tecnologias base da web:
+Todo o app é feito com as três tecnologias base da web.
 
-- **HTML5** — uma página por tela, dentro de `pages/`. Cada página é um documento completo que carrega os scripts de que precisa.
-- **CSS** — dois arquivos: `css/global.css` (o design system: variáveis, reset, layout, componentes) e `css/modals.css` (todo o sistema de modais). O visual é controlado por **CSS Custom Properties** (variáveis), o que torna o tema claro/escuro só uma questão de trocar valores.
-- **JavaScript "vanilla"** — sem framework. A lógica fica em scripts `js/` compartilhados e em blocos `<script>` no fim de cada página. O código usa `'use strict'`, manipula o DOM diretamente e organiza comportamentos por meio de **data attributes** (ex.: `data-modal`, `data-close`, `data-tab`).
+* **HTML5.** Uma página por tela, dentro de `pages/`. Cada página é um documento completo que carrega os scripts que precisa.
+* **CSS.** São dois arquivos. O `css/global.css` é o design system, com variáveis, reset, layout e componentes. O `css/modals.css` cuida de todo o sistema de modais. O visual é controlado por variáveis CSS, o que faz o tema claro e escuro virar só uma troca de valores.
+* **JavaScript puro.** Sem framework. A lógica fica em scripts compartilhados na pasta `js/` e em blocos de script no fim de cada página. O código usa `'use strict'`, mexe no DOM direto e organiza comportamentos através de atributos de dado, como `data-modal`, `data-close` e `data-tab`.
 
-**Por que sem framework?** Para um projeto desse porte, vanilla JS resolve sem peso extra. Não precisa de etapa de build, dá para abrir os arquivos e entender o que cada um faz, e o tempo de carregamento é mínimo — você baixa só o que a página usa. Como o app é centrado em formulários, listas e alguns gráficos simples (desenhados na mão em SVG), não há complexidade de estado que justifique trazer React, Vue ou similar. É uma escolha que mantém o projeto leve e fácil de estudar — o que faz sentido num contexto de aprendizado.
+Por que sem framework? Pra um projeto desse tamanho, o JavaScript puro resolve sem peso extra. Não precisa de build, dá pra abrir os arquivos e entender o que cada um faz, e o carregamento é mínimo, já que você baixa só o que a página usa. Como o app gira em torno de formulários, listas e alguns gráficos simples desenhados na mão em SVG, não existe uma complexidade de estado que justifique trazer React, Vue ou parecidos. É uma escolha que mantém o projeto leve e fácil de estudar, o que faz todo sentido num contexto de aprendizado.
 
 ## Supabase
 
-O back-end é o **Supabase**, que entra como banco de dados (Postgres) e camada de acesso a dados. O cliente JavaScript é carregado por CDN em todas as páginas:
+O backend é o Supabase, que entra como banco de dados Postgres e camada de acesso a dados. O cliente JavaScript é carregado por CDN em todas as páginas.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 ```
 
-A inicialização do cliente e todas as funções de acesso ficam em `js/supabase.js`. O arquivo cria o cliente com `createClient(SUPABASE_URL, SUPABASE_KEY)` — a URL do projeto e a **chave anon ficam escritas direto no arquivo** — e expõe funções como `dbLogin`, `dbRegister`, `dbGetContas`, `dbGetTodasTransacoes`, `dbGetCategorias`, `dbGetMetas`, `dbAddTransacao`, `dbUpdateSaldo`, `dbAddContaComSaldo`, `dbDeleteConta`, `dbAddMeta`, `dbAporteMeta` e outras. As páginas chamam essas funções em vez de falar com o Supabase diretamente — exceto a tela de perfil, que usa o cliente `_db` direto para atualizar a tabela `cliente`.
+A inicialização do cliente e todas as funções de acesso ficam em `js/supabase.js`. O arquivo cria o cliente com `createClient(SUPABASE_URL, SUPABASE_KEY)` e expõe funções como `dbLogin`, `dbRegister`, `dbGetContas`, `dbGetTodasTransacoes`, `dbGetCategorias`, `dbGetMetas`, `dbAddTransacao`, `dbUpdateSaldo`, `dbAddContaComSaldo`, `dbDeleteConta`, `dbAddMeta`, `dbAporteMeta` e outras. As páginas chamam essas funções em vez de falar com o Supabase direto. A tela de perfil também usa o cliente `_db` diretamente pra atualizar a tabela `cliente`.
 
-As queries usam o recurso de *joins* do Supabase para trazer dados relacionados de uma vez (ex.: `conta` já com seus `tipo`, ou `transacao` com `categoria` e `tipo(conta)` aninhados). O login compara e-mail e senha direto na tabela `cliente` — vale saber que **a senha trafega e é comparada em texto puro**, sem hash; é uma simplificação adequada ao contexto escolar do projeto, não algo para produção.
+As consultas usam o recurso de junção do Supabase pra trazer dados relacionados de uma vez só. Um exemplo é a `conta` já vir com os seus `tipo`, ou a `transacao` vir com `categoria` e `tipo` e a `conta` aninhados. Isso deixa o render das telas mais rápido, com menos idas ao banco.
 
-O schema do banco está versionado em `supabase_schema.sql` (detalhado em [Banco de dados](wiki-banco-de-dados.md)).
+O schema do banco está versionado em `supabase_schema.sql`, detalhado em [Banco de dados](wiki-banco-de-dados.md).
 
 ## Recursos via CDN
 
-Além do Supabase, o projeto puxa de CDN:
+Além do Supabase, o projeto puxa de CDN as fontes e os ícones do Google.
 
-- **Google Fonts**:
-  - **Public Sans** — fonte principal (sans-serif).
-  - **JetBrains Mono** — usada nos valores monetários (classe `.mono`).
-  - **Material Symbols Outlined** — toda a iconografia do app.
+* **Public Sans.** A fonte principal, sem serifa.
+* **JetBrains Mono.** Usada nos valores em dinheiro, pela classe `.mono`.
+* **Material Symbols Outlined.** Toda a iconografia do app.
 
 ```html
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,31 +41,18 @@ Além do Supabase, o projeto puxa de CDN:
 
 ## Armazenamento no navegador
 
-O app usa o **`localStorage`** para guardar estado entre páginas:
+O app usa o `localStorage` pra guardar estado entre as páginas.
 
-| Chave | Para que serve |
-|-------|----------------|
-| `finsight-session` | Marca se há sessão ativa (`'true'`) |
-| `finsight-user` | Dados do usuário logado (JSON) |
-| `finsight-theme` | Preferência de tema (`'dark'` / `'light'`) |
-| `finsight-pin` | PIN de 4 dígitos da área de segurança |
-
-## Documentos do repositório
-
-Além do código, o repositório carrega dois documentos que contam a história do projeto:
-
-- **`DOCS.md`** — documentação de uma fase anterior, quando o app era um protótipo visual com dados *hardcoded* e persistência só em `localStorage`. Boa parte do que está lá (telas como UI sem lógica, helpers `saveData`/`loadData`) foi superada pela versão atual ligada ao Supabase. Serve como registro histórico.
-- **`INTEGRACAO.md`** — guia de integração que planejava um back-end em **Spring Boot** (API em `localhost:8080`) na frente do Supabase, com contrato de endpoints e um helper `js/api.js`. Esse caminho não foi o adotado: a versão final fala direto com o Supabase via `supabase-js`, sem a API Java no meio. Útil para entender as decisões consideradas.
-
-Vale registrar também que **`js/app.js`**, embora seja carregado em todas as páginas internas, hoje contém apenas uma função solta (`addTransacao`) que usa helpers de `localStorage` daquela fase antiga — é um resquício, não a lógica atual. Quem manda hoje é `js/supabase.js` mais o `<script>` de cada página.
+* **`finsight-session`.** Marca se existe sessão ativa, com o valor `'true'`.
+* **`finsight-user`.** Os dados do usuário logado, em JSON.
+* **`finsight-theme`.** A preferência de tema, sendo `'dark'` ou `'light'`.
+* **`finsight-pin`.** O PIN de quatro dígitos da área de segurança.
 
 ## Resumo da stack
 
-| Camada | Tecnologia |
-|--------|------------|
-| Estrutura | HTML5 |
-| Estilo | CSS3 (variáveis / design system) |
-| Lógica | JavaScript puro (ES, sem framework) |
-| Banco / back-end | Supabase (Postgres) via `@supabase/supabase-js` v2 |
-| Fontes e ícones | Google Fonts: Public Sans, JetBrains Mono, Material Symbols |
-| Estado no cliente | `localStorage` |
+* **Estrutura.** HTML5.
+* **Estilo.** CSS com variáveis e design system.
+* **Lógica.** JavaScript puro, sem framework.
+* **Banco e backend.** Supabase, sobre Postgres, pelo `@supabase/supabase-js` na versão 2.
+* **Fontes e ícones.** Google Fonts, com Public Sans, JetBrains Mono e Material Symbols.
+* **Estado no cliente.** `localStorage`.

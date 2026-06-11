@@ -1,99 +1,88 @@
 # Banco de dados
 
-O banco é um Postgres rodando no Supabase. O schema está em `supabase_schema.sql` e tem cinco tabelas: `cliente`, `conta`, `tipo`, `categoria` e `transacao`.
+O banco é um Postgres rodando no Supabase. O schema está em `supabase_schema.sql` e tem cinco tabelas, que são `cliente`, `conta`, `tipo`, `categoria` e `transacao`.
 
 ## Tabelas
 
-### `cliente`
+### cliente
 
-Usuários do sistema.
+São os usuários do sistema.
 
-| Coluna | Tipo | Restrições |
-|--------|------|-----------|
-| `id_cliente` | `SERIAL` | Chave primária |
-| `username` | `VARCHAR(50)` | Não nulo |
-| `email` | `VARCHAR(100)` | Não nulo, único |
-| `password` | `VARCHAR(255)` | Não nulo |
+* **`id_cliente`.** `SERIAL`, chave primária.
+* **`username`.** `VARCHAR(50)`, não nulo.
+* **`email`.** `VARCHAR(100)`, não nulo e único.
+* **`password`.** `VARCHAR(255)`, não nulo.
 
-### `conta`
+### conta
 
-As carteiras/contas de cada usuário (Nubank, poupança, dinheiro físico…). Na interface, isso aparece como "Carteira".
+São as carteiras de cada usuário, como Nubank, poupança ou dinheiro físico. Na interface, isso aparece como Carteira.
 
-| Coluna | Tipo | Restrições |
-|--------|------|-----------|
-| `id_conta` | `SERIAL` | Chave primária |
-| `id_cliente` | `INT` | Não nulo, FK → `cliente(id_cliente)` |
-| `nome_banco` | `VARCHAR(100)` | Não nulo |
+* **`id_conta`.** `SERIAL`, chave primária.
+* **`id_cliente`.** `INT`, não nulo, chave estrangeira pra `cliente(id_cliente)`.
+* **`nome_banco`.** `VARCHAR(100)`, não nulo.
 
-### `tipo`
+### tipo
 
-Tabela com duplo papel. Ela guarda tanto o **saldo de uma carteira** quanto as **metas de poupança**, sempre vinculada a uma `conta`:
+Essa tabela tem um papel duplo. Ela guarda tanto o saldo de uma carteira quanto as metas de poupança, sempre ligada a uma `conta`.
 
-- Quando `saldo_objetivo` é nulo, a linha representa o **saldo padrão da carteira** (o `saldo_atual` é o dinheiro disponível).
-- Quando `saldo_objetivo` está preenchido, a linha representa uma **meta** (com valor alvo, valor atual e prazo). Nesse caso, o campo `nome` guarda um JSON com `{ nome, icone }`.
+* Quando `saldo_objetivo` está nulo, a linha representa o saldo padrão da carteira, e o `saldo_atual` é o dinheiro disponível.
+* Quando `saldo_objetivo` está preenchido, a linha representa uma meta, com valor alvo, valor atual e prazo. Nesse caso, o campo `nome` guarda um JSON com nome e ícone.
 
-| Coluna | Tipo | Restrições |
-|--------|------|-----------|
-| `id_tipo` | `SERIAL` | Chave primária |
-| `nome` | `VARCHAR(50)` | Não nulo |
-| `saldo_objetivo` | `DECIMAL(10,2)` | — |
-| `saldo_atual` | `DECIMAL(10,2)` | — |
-| `data_limite` | `DATE` | — |
-| `id_conta` | `INT` | Não nulo, FK → `conta(id_conta)` |
+As colunas.
 
-### `categoria`
+* **`id_tipo`.** `SERIAL`, chave primária.
+* **`nome`.** `VARCHAR(50)`, não nulo.
+* **`saldo_objetivo`.** `DECIMAL(10,2)`.
+* **`saldo_atual`.** `DECIMAL(10,2)`.
+* **`data_limite`.** `DATE`.
+* **`id_conta`.** `INT`, não nulo, chave estrangeira pra `conta(id_conta)`.
 
-Categorias de receita/despesa. O nome guarda um JSON com `{ nome, icone, cor, tipo }` — por isso o campo comporta até 50 caracteres de texto estruturado.
+### categoria
 
-| Coluna | Tipo | Restrições |
-|--------|------|-----------|
-| `id_categoria` | `SERIAL` | Chave primária |
-| `nome_categoria` | `VARCHAR(50)` | Não nulo |
+São as categorias de receita e despesa. O nome guarda um JSON com nome, ícone, cor e tipo. Por isso o campo comporta texto estruturado.
 
-### `transacao`
+* **`id_categoria`.** `SERIAL`, chave primária.
+* **`nome_categoria`.** `VARCHAR(50)`, não nulo.
 
-Cada lançamento de receita ou despesa.
+### transacao
 
-| Coluna | Tipo | Restrições |
-|--------|------|-----------|
-| `id_transacao` | `SERIAL` | Chave primária |
-| `valor` | `DECIMAL(10,2)` | Não nulo |
-| `data_transacao` | `DATE` | Não nulo |
-| `descricao` | `VARCHAR(255)` | — |
-| `titulo` | `VARCHAR(100)` | Não nulo |
-| `id_categoria` | `INT` | Não nulo, FK → `categoria(id_categoria)` |
-| `quantidade_parcelas` | `INT` | — |
-| `id_tipo` | `INT` | Não nulo, FK → `tipo(id_tipo)` |
-| `debitocredito` | `BOOLEAN` | Não nulo |
-| `efetividade` | `BOOLEAN` | Não nulo |
-| `data_efetividade` | `DATE` | — |
+É cada lançamento de receita ou despesa.
 
-Dois campos booleanos definem a natureza da transação:
+* **`id_transacao`.** `SERIAL`, chave primária.
+* **`valor`.** `DECIMAL(10,2)`, não nulo.
+* **`data_transacao`.** `DATE`, não nulo.
+* **`descricao`.** `VARCHAR(255)`.
+* **`titulo`.** `VARCHAR(100)`, não nulo.
+* **`id_categoria`.** `INT`, não nulo, chave estrangeira pra `categoria(id_categoria)`.
+* **`quantidade_parcelas`.** `INT`.
+* **`id_tipo`.** `INT`, não nulo, chave estrangeira pra `tipo(id_tipo)`.
+* **`debitocredito`.** `BOOLEAN`, não nulo.
+* **`efetividade`.** `BOOLEAN`, não nulo.
+* **`data_efetividade`.** `DATE`.
 
-- **`debitocredito`** — `true` para receita (crédito), `false` para despesa (débito). É o que o código usa para separar entradas de saídas.
-- **`efetividade`** — `true` se a transação já foi efetivada, `false` se ainda está pendente. `data_efetividade` registra quando foi efetivada.
+Dois campos booleanos definem a natureza da transação.
+
+* **`debitocredito`.** Vale `true` pra receita, que é crédito, e `false` pra despesa, que é débito. É o que o código usa pra separar entrada de saída.
+* **`efetividade`.** Vale `true` se a transação já foi efetivada, e `false` se ainda está pendente. O campo `data_efetividade` registra quando ela foi efetivada.
 
 ## Relacionamentos
 
-```
-cliente (1) ───< (N) conta (1) ───< (N) tipo (1) ───< (N) transacao
-                                                            >─── (1) categoria
-```
+A relação entre as tabelas segue uma cadeia simples.
 
-- Um **cliente** tem várias **contas** (`conta.id_cliente`).
-- Uma **conta** tem vários **tipos** (`tipo.id_conta`) — tanto o saldo da carteira quanto as metas.
-- Um **tipo** tem várias **transações** (`transacao.id_tipo`).
-- Uma **categoria** classifica várias **transações** (`transacao.id_categoria`).
+* Um `cliente` tem várias `conta`, pela coluna `conta.id_cliente`.
+* Uma `conta` tem vários `tipo`, pela coluna `tipo.id_conta`. Isso vale tanto pro saldo da carteira quanto pras metas.
+* Um `tipo` tem várias `transacao`, pela coluna `transacao.id_tipo`.
+* Uma `categoria` classifica várias `transacao`, pela coluna `transacao.id_categoria`.
 
-Todas as relações são garantidas por chaves estrangeiras (`FOREIGN KEY`), com as constraints nomeadas: `fk_conta_cliente`, `fk_tipo_conta`, `fk_transacao_categoria` e `fk_transacao_tipo`.
+Todas essas relações são garantidas por chaves estrangeiras, com as restrições nomeadas como `fk_conta_cliente`, `fk_tipo_conta`, `fk_transacao_categoria` e `fk_transacao_tipo`.
 
 ## Sobre a normalização
 
-O modelo está normalizado de forma consistente:
+O modelo está normalizado de forma consistente.
 
-- **Sem repetição de dados**: usuário, conta, tipo, categoria e transação ficam cada um na sua tabela; as transações só referenciam os outros registros por id, em vez de repetir nome de conta ou de categoria.
-- **Chaves primárias artificiais** (`SERIAL`) em todas as tabelas, deixando as relações sempre por id.
-- **Integridade referencial** garantida por FKs em todos os vínculos, o que evita transações órfãs (sem conta ou sem categoria).
-- Atende às formas normais usuais (1FN/2FN/3FN): cada coluna guarda um valor único e os atributos dependem da chave da própria tabela.
+* **Sem repetição de dados.** Usuário, conta, tipo, categoria e transação ficam cada um na sua tabela. As transações só apontam pra os outros registros por id, em vez de repetir nome de conta ou de categoria.
+* **Chaves primárias artificiais.** Todas as tabelas usam `SERIAL`, deixando as relações sempre por id.
+* **Integridade referencial.** As chaves estrangeiras cobrem todos os vínculos, o que evita transação órfã, sem conta ou sem categoria.
+* **Formas normais.** O modelo atende às formas normais usuais. Cada coluna guarda um valor único e os atributos dependem da chave da própria tabela.
 
-**Uma ressalva honesta:** as categorias e o nome das metas guardam um JSON dentro de um campo `VARCHAR`. Isso é um dado composto morando numa coluna de texto — na prática, uma quebra deliberada da 1FN para carregar ícone, cor e tipo sem precisar de colunas extras no schema. Funciona bem para o app, mas vale saber que essas informações não são consultáveis por SQL de forma direta; quem interpreta o JSON é o JavaScript.
+Um ponto de design que vale registrar. As categorias e o nome das metas guardam um JSON dentro de um campo de texto, com informações de apresentação como ícone, cor e tipo. É uma escolha proposital que deixa o schema enxuto e flexível, sem precisar de colunas extras pra cada detalhe visual. Quem monta e lê esse JSON é o JavaScript do front.

@@ -1,19 +1,19 @@
 # FinSight
 
-Controle de finanças pessoais no navegador — registre o que entra, o que sai, e veja para onde seu dinheiro está indo.
+Controle de finanças pessoais que roda no navegador. Você registra o que entra, o que sai, e enxerga pra onde o seu dinheiro está indo.
 
-O FinSight é uma aplicação web onde você cadastra carteiras, lança receitas e despesas, organiza tudo em categorias, define metas de poupança e acompanha relatórios do período. Tudo roda no front-end (HTML, CSS e JavaScript puro) e os dados ficam num banco Postgres gerenciado pelo Supabase.
+O FinSight é uma aplicação web onde você cadastra carteiras, lança receitas e despesas, organiza tudo em categorias, cria metas de poupança e acompanha relatórios do período. O front é feito com HTML, CSS e JavaScript puro, e os dados ficam guardados num banco Postgres gerenciado pelo Supabase.
 
 ## Páginas da wiki
 
-| Página | O que tem lá |
-|--------|--------------|
-| [Sobre o projeto](wiki-sobre-o-projeto.md) | O problema que motivou o FinSight, contexto acadêmico e objetivos |
-| [Funcionalidades](wiki-funcionalidades.md) | Cada tela do app, o que faz e como o usuário interage |
-| [Tecnologias](wiki-tecnologias.md) | Stack usada e o porquê de cada escolha |
-| [Arquitetura](wiki-arquitetura.md) | Estrutura de pastas, navegação e padrões de código |
-| [Banco de dados](wiki-banco-de-dados.md) | Tabelas, relacionamentos e normalização |
-| [Como rodar](wiki-como-rodar.md) | Subir o projeto na sua máquina |
+Cada link abaixo leva pra uma parte da documentação.
+
+* [Sobre o projeto](wiki-sobre-o-projeto.md). O problema que deu origem ao FinSight, o contexto acadêmico e os objetivos.
+* [Funcionalidades](wiki-funcionalidades.md). Cada tela do app, o que ela faz e como o usuário interage.
+* [Tecnologias](wiki-tecnologias.md). A stack usada e o motivo de cada escolha.
+* [Arquitetura](wiki-arquitetura.md). Estrutura de pastas, navegação e padrões do código.
+* [Banco de dados](wiki-banco-de-dados.md). Tabelas, relacionamentos e normalização.
+* [Como rodar](wiki-como-rodar.md). Subir o projeto na sua máquina.
 
 ## Tecnologias
 
@@ -24,9 +24,8 @@ O FinSight é uma aplicação web onde você cadastra carteiras, lança receitas
 
 ## Contexto acadêmico
 
-| Item | Descrição |
-|------|-----------|
-| Instituição | SENAI |
-| Curso | Análise e Desenvolvimento de Sistemas (ADS) |
-| Disciplina | Projeto Integrador |
-| Competição | SAGA SENAI de Inovação |
+O FinSight nasceu na disciplina de Projeto Integrador do curso de Análise e Desenvolvimento de Sistemas (ADS) do SENAI.
+
+* **Instituição.** SENAI
+* **Curso.** Análise e Desenvolvimento de Sistemas (ADS)
+* **Disciplina.** Projeto Integrador

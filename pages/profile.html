@@ -38,6 +38,7 @@
         </div>
         <div class="profile-name">João da Silva</div>
         <button class="profile-photo-btn">Alterar foto</button>
+        <input type="file" id="avatar_input" accept="image/*" style="display:none;">
       </div>
 
       <!-- Personal info -->
@@ -552,6 +553,54 @@
       clearTimeout(t._timer);
       t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
     }
+
+    // ─── Avatar (foto de perfil) ───
+    function aplicarAvatar(dataUrl) {
+      const img = document.querySelector('.profile-avatar_img');
+      const ini = document.querySelector('.profile-avatar_initials');
+      if (!img) return;
+      img.style.backgroundImage    = `url(${dataUrl})`;
+      img.style.backgroundSize     = 'cover';
+      img.style.backgroundPosition = 'center';
+      if (ini) ini.style.display = 'none';
+    }
+    const _avatarSalvo = localStorage.getItem('finsight-avatar');
+    if (_avatarSalvo) aplicarAvatar(_avatarSalvo);
+
+    const _avatarInput = document.getElementById('avatar_input');
+    ['.profile-avatar_edit', '.profile-photo-btn'].forEach(sel => {
+      const btn = document.querySelector(sel);
+      if (btn) btn.addEventListener('click', () => _avatarInput.click());
+    });
+    _avatarInput.addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const dataUrl = e.target.result;
+        try {
+          localStorage.setItem('finsight-avatar', dataUrl);
+          aplicarAvatar(dataUrl);
+          showToast('Foto atualizada!');
+        } catch (_) {
+          alert('Imagem muito grande. Escolha uma foto menor.');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ─── Excluir conta ───
+    document.querySelector('#modal_confirm_delete_account .btn-modal-danger').addEventListener('click', async function () {
+      this.disabled = true;
+      try {
+        await dbDeleteCliente(_user.id_cliente);
+        localStorage.clear();
+        window.location.replace('login.html');
+      } catch (e) {
+        alert('Erro ao excluir conta: ' + e.message);
+        this.disabled = false;
+      }
+    });
 
     // Logout
     document.getElementById('btn_logout').addEventListener('click', function () {

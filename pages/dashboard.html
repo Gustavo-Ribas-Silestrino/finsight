@@ -206,10 +206,6 @@
             <div class="fab-type-icon"><span class="material-symbols-outlined">swap_horiz</span></div>
             <span class="fab-type-label">Transferência</span>
           </div>
-          <div class="fab-type-card card-tx" data-target="modal_new_card">
-            <div class="fab-type-icon"><span class="material-symbols-outlined">credit_card</span></div>
-            <span class="fab-type-label">Despesa de Cartão</span>
-          </div>
         </div>
       </div>
     </div>
@@ -695,17 +691,19 @@
 
     // ─── Selects nos modais ───
     function popularSelectsDash(contas, cats) {
-      const optsCat   = cats.filter(c => parseCat(c.nome_categoria).tipo !== 'transfer')
+      const mkOptsCat = tp => cats.filter(c => parseCat(c.nome_categoria).tipo === tp)
         .map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
+      const optsCatExp = mkOptsCat('expense');
+      const optsCatInc = mkOptsCat('income');
       const optsConta = contas.filter(c => c.tipo?.length)
         .map(c => { const tp = getTipoPadrao(c); return `<option value="${tp.id_tipo}">${c.nome_banco}</option>`; }).join('');
       const semCat   = '<option value="" disabled selected>— selecione —</option>';
       const semConta = '<option value="" disabled selected>— selecione —</option>';
 
-      ['dexp_categoria','dinc_categoria'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = semCat + optsCat;
-      });
+      const elDexpCat = document.getElementById('dexp_categoria');
+      if (elDexpCat) elDexpCat.innerHTML = semCat + optsCatExp;
+      const elDincCat = document.getElementById('dinc_categoria');
+      if (elDincCat) elDincCat.innerHTML = semCat + optsCatInc;
       ['dexp_conta','dinc_conta','dtransf_de','dtransf_para'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = semConta + optsConta;

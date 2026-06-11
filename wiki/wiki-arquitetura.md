@@ -1,65 +1,63 @@
 # Arquitetura
 
-O FinSight é uma aplicação front-end multipágina (MPA): cada tela é um arquivo HTML próprio, e os arquivos compartilham CSS e scripts. Não há build — o navegador carrega os arquivos como estão.
+O FinSight é uma aplicação front de várias páginas. Cada tela é um arquivo HTML próprio, e os arquivos compartilham CSS e scripts. Não tem build. O navegador carrega os arquivos do jeito que eles estão.
 
 ## Estrutura de pastas
 
 ```
 finsight/
-├── index.html              # Porta de entrada — redireciona para o login
-├── supabase_schema.sql     # Schema do banco (Postgres / Supabase)
-├── DOCS.md                 # Documentação de uma fase anterior (protótipo localStorage)
-├── INTEGRACAO.md           # Guia de um back-end Spring Boot planejado (não adotado)
-├── .gitignore              # Ignora .vercel
+├── index.html              Porta de entrada que redireciona pra o login
+├── supabase_schema.sql     Schema do banco, em Postgres pelo Supabase
+├── DOCS.md                 Documentação de apoio do projeto
+├── INTEGRACAO.md           Notas sobre integração com o backend
+├── .gitignore              Ignora a pasta .vercel
 ├── .vscode/
-│   └── settings.json       # Porta do Live Server (5501)
+│   └── settings.json       Porta do Live Server, a 5501
 ├── css/
-│   ├── global.css          # Design system: variáveis, reset, layout, componentes
-│   └── modals.css          # Sistema de modais (bottom sheets)
+│   ├── global.css          Design system, com variáveis, reset, layout e componentes
+│   └── modals.css          Sistema de modais, no formato de folha que sobe de baixo
 ├── js/
-│   ├── supabase.js         # Cliente Supabase + funções de acesso ao banco (db*)
-│   ├── modals.js           # Comportamentos globais: modais, tema, sidebar, etc.
-│   └── app.js              # Resquício do protótipo antigo (função solta, sem uso real)
+│   ├── supabase.js         Cliente Supabase e as funções de acesso ao banco
+│   ├── modals.js           Comportamentos globais, como modais, tema e barra lateral
+│   └── app.js              Funções utilitárias de apoio
 └── pages/
-    ├── login.html          # Entrar
-    ├── register.html       # Criar conta
-    ├── dashboard.html      # Visão geral
-    ├── transactions.html   # Atividade (lista de transações)
-    ├── wallets.html        # Carteiras
-    ├── goals.html          # Metas
-    ├── categories.html     # Categorias
-    ├── reports.html        # Relatórios
-    └── profile.html        # Perfil e segurança
+    ├── login.html          Entrar
+    ├── register.html       Criar conta
+    ├── dashboard.html      Visão geral
+    ├── transactions.html   Atividade, com a lista de transações
+    ├── wallets.html        Carteiras
+    ├── goals.html          Metas
+    ├── categories.html     Categorias
+    ├── reports.html        Relatórios
+    └── profile.html        Perfil e segurança
 ```
 
-### O que cada parte faz
+## O que cada parte faz
 
-- **`index.html`** — documento mínimo que só redireciona para `pages/login.html` (via `meta refresh` e `window.location.replace`).
-- **`css/global.css`** — o coração do visual. Define as variáveis de cor/tipografia/raio/sombra no `:root`, o reset, e os componentes (appbar, cards, botões, listas de transação, gráficos, navegação, etc.). Também tem o tema claro em `html:not(.dark)`.
-- **`css/modals.css`** — todo o sistema de modais, que aparecem como *bottom sheets* (deslizam de baixo para cima) com overlay e blur.
-- **`js/supabase.js`** — inicializa o cliente Supabase e concentra o acesso a dados em funções `db*`. As páginas chamam essas funções; não falam SQL diretamente.
-- **`js/modals.js`** — comportamentos que valem para o app inteiro (detalhado abaixo).
-- **`js/app.js`** — carregado em todas as páginas internas, mas hoje só tem uma função solta (`addTransacao`) sobrando do protótipo antigo baseado em `localStorage`. Não participa do fluxo atual.
-- **`DOCS.md` / `INTEGRACAO.md`** — documentos históricos (protótipo em `localStorage` e plano de back-end Spring Boot, respectivamente). Ver [Tecnologias](wiki-tecnologias.md).
-- **`pages/`** — uma página por tela. Cada uma carrega o CSS, os scripts compartilhados e tem, ao final, um `<script>` com a lógica específica daquela tela.
+* **`index.html`.** Documento mínimo que só redireciona pra `pages/login.html`, usando `meta refresh` e `window.location.replace`.
+* **`css/global.css`.** É o coração do visual. Define as variáveis de cor, tipografia, raio e sombra no `:root`, o reset e os componentes, como a barra do topo, os cards, os botões, as listas de transação, os gráficos e a navegação. Também tem o tema claro, em `html:not(.dark)`.
+* **`css/modals.css`.** Todo o sistema de modais, que aparecem como folhas que deslizam de baixo pra cima, com fundo escurecido e desfoque.
+* **`js/supabase.js`.** Inicia o cliente Supabase e concentra o acesso a dados nas funções com prefixo `db`. As páginas chamam essas funções, sem escrever consulta direto.
+* **`js/modals.js`.** Comportamentos que valem pra o app inteiro, detalhados mais abaixo.
+* **`js/app.js`.** Funções utilitárias de apoio, carregado em todas as páginas internas.
+* **`DOCS.md` e `INTEGRACAO.md`.** Documentos de apoio do projeto, com notas de documentação e de integração.
+* **`pages/`.** Uma página por tela. Cada uma carrega o CSS, os scripts compartilhados e tem, no fim, um bloco de script com a lógica daquela tela.
 
 ## Como a navegação funciona
 
-A navegação é por **links comuns entre arquivos HTML** — cada clique carrega uma página nova. Não há roteador nem SPA.
+A navegação é por links comuns entre arquivos HTML. Cada clique carrega uma página nova. Não tem roteador, nem aplicação de página única.
 
-- **`index.html`** manda direto para o login.
-- O **login** guarda `finsight-session = 'true'` no `localStorage` e vai para o dashboard.
-- Toda página interna começa com uma **trava de sessão**: se `finsight-session` não for `'true'`, redireciona de volta para o login. As telas de login/registro fazem o inverso — se já há sessão, pulam para o dashboard.
-- A **navegação entre telas** acontece por dois componentes:
-  - **Bottom nav** (barra inferior) no mobile, com Dashboard, Atividade, Carteiras, Metas e Perfil.
-  - **Sidebar** no desktop (≥ 1024px), montada por JavaScript (`buildSidebarHTML` / `setupDesktopSidebar` em `modals.js`), que injeta um `<aside>` com os links de navegação, incluindo também Categorias e Relatórios.
-- O item ativo da navegação é marcado comparando a URL atual com o `href` de cada link.
+* O `index.html` manda direto pra o login.
+* O login guarda `finsight-session` como `'true'` no `localStorage` e vai pra o dashboard.
+* Toda página interna começa com uma trava de sessão. Se `finsight-session` não for `'true'`, ela redireciona de volta pra o login. As telas de login e cadastro fazem o contrário. Se já existe sessão, elas pulam pra o dashboard.
+* A navegação entre telas acontece por dois componentes. No celular tem a barra de baixo, com Dashboard, Atividade, Carteiras, Metas e Perfil. No desktop, a partir de 1024 pixels, aparece a barra lateral, montada por JavaScript em `modals.js`, que injeta um elemento `<aside>` com os links, incluindo também Categorias e Relatórios.
+* O item ativo da navegação é marcado comparando a URL atual com o destino de cada link.
 
-## Padrões identificados no código
+## Padrões que dá pra notar no código
 
-### Design system via variáveis CSS
+### Design system por variáveis CSS
 
-Cores, tipografia, raios de borda, sombras e medidas de layout ficam em Custom Properties no `:root` de `global.css`. Exemplos:
+Cores, tipografia, raios de borda, sombras e medidas de layout ficam em variáveis no `:root` do `global.css`. Um exemplo.
 
 ```css
 :root {
@@ -73,46 +71,40 @@ Cores, tipografia, raios de borda, sombras e medidas de layout ficam em Custom P
 }
 ```
 
-O **tema claro/escuro** é só uma troca desses valores: o tema claro é definido em `html:not(.dark)`, e alternar tema é adicionar/remover a classe `dark` no `<html>`.
+O tema claro e escuro é só uma troca desses valores. O tema claro é definido em `html:not(.dark)`, e alternar o tema é adicionar ou tirar a classe `dark` do elemento `<html>`.
 
-### Comportamento por data attributes
+### Comportamento por atributos de dado
 
-Em vez de amarrar JavaScript a IDs específicos, `modals.js` varre o DOM por atributos e liga os comportamentos. Assim, qualquer página ganha o recurso só usando o atributo certo:
+Em vez de amarrar JavaScript a IDs específicos, o `modals.js` varre o DOM atrás de atributos e liga os comportamentos. Assim, qualquer página ganha o recurso só usando o atributo certo.
 
-| Atributo | O que faz |
-|----------|-----------|
-| `data-modal="id"` | Abre o modal de id correspondente |
-| `data-close="id"` | Fecha o modal |
-| `data-pw-toggle="id"` | Mostra/oculta o campo de senha |
-| `data-tabs` / `data-tab` | Grupo de abas e cada aba |
-| `data-toggle-parcel` | Mostra/oculta o campo de parcelas |
-| `data-toggle-fixed` | Mostra/oculta o campo de despesa fixa |
-| `data-target` | Card do FAB que aponta para um modal específico |
+* **`data-modal="id"`.** Abre o modal com o id correspondente.
+* **`data-close="id"`.** Fecha o modal.
+* **`data-pw-toggle="id"`.** Mostra ou esconde o campo de senha.
+* **`data-tabs` e `data-tab`.** O grupo de abas e cada aba.
+* **`data-toggle-parcel`.** Mostra ou esconde o campo de parcelas.
+* **`data-toggle-fixed`.** Mostra ou esconde o campo de despesa fixa.
+* **`data-target`.** O card do botão flutuante que aponta pra um modal específico.
 
-### Modais como bottom sheets
+### Modais como folhas que sobem
 
-Todos os modais seguem a mesma marcação (`.modal-overlay` > `.modal-sheet` com `.modal-handle`, `.modal-header`, `.modal-body`). Abrir/fechar é só alternar a classe `.is-open`. Dá para fechar clicando no overlay ou apertando `Esc`. Quando um modal está aberto, o `<body>` ganha `modal-open`.
-
-### Lógica compartilhada vs. lógica de página
-
-`modals.js` cuida do que é transversal: tema, sidebar do desktop, dados do usuário na appbar, seletores de ícone/cor, força de senha, datas padrão para hoje, etc. Já a lógica específica de cada tela (carregar dados, renderizar listas, salvar formulários) fica num `<script>` no fim do próprio HTML, sempre chamando as funções `db*` de `supabase.js`.
+Todos os modais seguem a mesma marcação, com `.modal-overlay` por fora, `.modal-sheet` por dentro, e em volta um `.modal-handle`, um `.modal-header` e um `.modal-body`. Abrir ou fechar é só alternar a classe `.is-open`. Dá pra fechar clicando no fundo ou apertando a tecla Esc. Quando um modal está aberto, o `<body>` ganha a classe `modal-open`.
 
 ### Camada de acesso a dados centralizada
 
-Nenhuma página escreve query do Supabase espalhada pelo código. Tudo passa por `js/supabase.js`, que expõe funções `db*` por entidade (auth, contas, tipos, metas, categorias, transações). As páginas importam essas funções e chamam pelo nome. Dois detalhes do desenho dessa camada:
+Nenhuma página escreve consulta do Supabase espalhada pelo código. Tudo passa pelo `js/supabase.js`, que expõe funções com prefixo `db` por entidade, cobrindo login, contas, tipos, metas, categorias e transações. As páginas chamam pelo nome. Dois detalhes do desenho dessa camada chamam atenção.
 
-- **Joins aninhados**: as leituras já trazem os relacionamentos prontos. `dbGetContas` traz cada `conta` com seus `tipo`; `dbGetTodasTransacoes` traz cada `transacao` com `categoria` e `tipo(conta)` embutidos. Isso evita várias idas ao banco no render.
-- **Cascata feita na mão**: como as exclusões precisam remover filhos antes do pai, funções como `dbDeleteConta` e `dbDeleteMeta` apagam as `transacao` (e os `tipo`) associados antes de apagar o registro principal.
+* **Junções aninhadas.** As leituras já trazem os relacionamentos prontos. A `dbGetContas` traz cada `conta` com os seus `tipo`. A `dbGetTodasTransacoes` traz cada `transacao` com a `categoria` e o `tipo` e a `conta` embutidos. Isso evita várias idas ao banco na hora de desenhar a tela.
+* **Cascata feita na mão.** Como as exclusões precisam remover os filhos antes do pai, funções como `dbDeleteConta` e `dbDeleteMeta` apagam as transações, e os tipos, ligados ao registro antes de apagar o principal.
 
 ### Dados ricos guardados como JSON
 
-Dois pontos do app guardam um objeto JSON dentro de um campo de texto do banco, para carregar mais informação do que o schema prevê:
+Dois pontos do app guardam um objeto JSON dentro de um campo de texto do banco, pra carregar mais informação do que o schema prevê.
 
-- **Categorias**: o campo `nome_categoria` guarda `{ nome, icone, cor, tipo }`.
-- **Metas**: o campo `nome` (da tabela `tipo`) guarda `{ nome, icone }`.
+* **Categorias.** O campo `nome_categoria` guarda um objeto com nome, ícone, cor e tipo.
+* **Metas.** O campo `nome` da tabela `tipo` guarda um objeto com nome e ícone.
 
-Por isso o código tem helpers `parseCat()` / `parseMeta()` que fazem o `JSON.parse` com um fallback caso o valor seja texto puro.
+Por isso o código tem ajudantes `parseCat()` e `parseMeta()`, que fazem o `JSON.parse` com um plano B caso o valor seja texto puro.
 
 ### Gráficos desenhados na mão
 
-Os gráficos não usam biblioteca: o donut de gastos por categoria é montado gerando paths SVG na hora (no dashboard), e os gráficos de barras (balanço de 6 meses, evolução nos relatórios) são `div`s com altura proporcional ao valor.
+Os gráficos não usam biblioteca. A rosca de gastos por categoria é montada gerando caminhos SVG na hora, no dashboard. Os gráficos de barras, como o balanço de seis meses e a evolução nos relatórios, são elementos `div` com a altura proporcional ao valor.

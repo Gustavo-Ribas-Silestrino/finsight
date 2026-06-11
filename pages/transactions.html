@@ -140,10 +140,6 @@
             <div class="fab-type-icon"><span class="material-symbols-outlined">swap_horiz</span></div>
             <span class="fab-type-label">Transferência</span>
           </div>
-          <div class="fab-type-card card-tx" data-target="modal_new_card">
-            <div class="fab-type-icon"><span class="material-symbols-outlined">credit_card</span></div>
-            <span class="fab-type-label">Despesa de Cartão</span>
-          </div>
         </div>
       </div>
     </div>
@@ -504,8 +500,10 @@
     // ─── Selects ───
     function popularSelects() {
       const contasValidas = _contas.filter(c => c.tipo && c.tipo.length);
-      const optsCat   = _cats.filter(c => parseCat(c.nome_categoria).tipo !== 'transfer')
+      const mkOptsCat = tp => _cats.filter(c => parseCat(c.nome_categoria).tipo === tp)
         .map(c => { const d = parseCat(c.nome_categoria); return `<option value="${c.id_categoria}">${d.nome}</option>`; }).join('');
+      const optsCatExp = mkOptsCat('expense');
+      const optsCatInc = mkOptsCat('income');
       const optsConta = contasValidas.map(c => {
         const tp = getTipoPadrao(c);
         return `<option value="${tp.id_tipo}">${c.nome_banco}</option>`;
@@ -515,10 +513,10 @@
       const semConta = contasValidas.length > 1 ? '<option value="" disabled selected>— selecione —</option>' : '';
       const semCat   = '<option value="" disabled selected>— selecione —</option>';
 
-      ['exp_categoria','inc_categoria'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = semCat + optsCat;
-      });
+      const elExpCat = document.getElementById('exp_categoria');
+      if (elExpCat) elExpCat.innerHTML = semCat + optsCatExp;
+      const elIncCat = document.getElementById('inc_categoria');
+      if (elIncCat) elIncCat.innerHTML = semCat + optsCatInc;
       ['exp_conta','inc_conta','transf_de','transf_para'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = semConta + optsConta;

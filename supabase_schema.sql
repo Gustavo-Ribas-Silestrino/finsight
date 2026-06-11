@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS conta (
 
 CREATE TABLE IF NOT EXISTS tipo (
     id_tipo        SERIAL PRIMARY KEY,
-    nome           VARCHAR(50)    NOT NULL,
+    nome           VARCHAR(255)   NOT NULL,
     saldo_objetivo DECIMAL(10,2),
     saldo_atual    DECIMAL(10,2),
     data_limite    DATE,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tipo (
 
 CREATE TABLE IF NOT EXISTS categoria (
     id_categoria  SERIAL PRIMARY KEY,
-    nome_categoria VARCHAR(50) NOT NULL
+    nome_categoria VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS transacao (

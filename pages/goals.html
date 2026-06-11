@@ -26,9 +26,6 @@
       <span class="appbar_user_name">João Silva</span>
     </div>
     <div class="appbar_actions">
-      <button class="appbar_btn" data-modal="modal_new_goal">
-        <span class="material-symbols-outlined">add</span>
-      </button>
       <a href="profile.html" class="appbar_avatar-btn">
         <div class="appbar_user_avatar">JS</div>
       </a>
@@ -50,6 +47,10 @@
         <button class="filter-tab" data-tab>Em andamento</button>
         <button class="filter-tab" data-tab>Concluídas</button>
       </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-bottom:20px;" data-modal="modal_new_goal">
+        <span class="material-symbols-outlined">add</span>Nova meta
+      </button>
 
       <div class="goal-list" id="goal_list"></div>
 
@@ -153,25 +154,25 @@
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">Nome da meta</label>
-          <input type="text" class="form-input" value="Viagem Europa">
+          <input id="edit_goal_nome" type="text" class="form-input" placeholder="Ex: Viagem Europa...">
         </div>
         <div class="form-group">
           <label class="form-label">Valor alvo</label>
           <div class="input-wrap">
             <span class="input-prefix">R$</span>
-            <input type="text" class="form-input input-mono" value="15.000,00" inputmode="decimal">
+            <input id="edit_goal_objetivo" type="text" class="form-input input-mono" placeholder="0,00" inputmode="decimal">
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Valor atual</label>
           <div class="input-wrap">
             <span class="input-prefix">R$</span>
-            <input type="text" class="form-input input-mono" value="4.200,00" inputmode="decimal">
+            <input id="edit_goal_atual" type="text" class="form-input input-mono" placeholder="0,00" inputmode="decimal">
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Prazo</label>
-          <input type="date" class="form-input" value="2026-12-31">
+          <input id="edit_goal_prazo" type="date" class="form-input">
         </div>
         <div class="form-group">
           <label class="form-label">Ícone</label>
@@ -191,10 +192,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn-modal-danger" onclick="closeModal('modal_edit_goal');openModal('modal_confirm_delete_goal')">
-            <span class="material-symbols-outlined" style="font-size:16px;">delete</span>Excluir
-          </button>
-          <button class="btn-modal-primary">
+          <button class="btn-modal-cancel" data-close="modal_edit_goal">Cancelar</button>
+          <button id="btn_salvar_edit_goal" class="btn-modal-primary">
             <span class="material-symbols-outlined" style="font-size:18px;">check</span>Salvar
           </button>
         </div>
@@ -232,6 +231,7 @@
     let _goalFiltro  = 'todas';
     let _goalParaDeletar = null;
     let _selGoalIcone = 'flight';
+    let _metasCache = [];
 
     function fmtBRL(v) {
       return Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -241,6 +241,7 @@
     }
 
     function renderGoals(metas) {
+      _metasCache = metas;
       const list = document.getElementById('goal_list');
       const filtradas = metas.filter(m => {
         const pct = Math.min(100, Math.round((parseFloat(m.saldo_atual)||0) / (parseFloat(m.saldo_objetivo)||1) * 100));
@@ -295,6 +296,9 @@
                      <span class="material-symbols-outlined">add_circle</span>Aporte
                    </button>`
               }
+              <button class="btn btn-ghost" onclick="abrirEditarGoal(${m.id_tipo})">
+                <span class="material-symbols-outlined">edit</span>
+              </button>
               <button class="btn btn-ghost" onclick="pedirExcluirGoal(${m.id_tipo})">
                 <span class="material-symbols-outlined">delete</span>
               </button>
@@ -307,6 +311,50 @@
       const metas = await dbGetMetas(_gUser.id_cliente);
       renderGoals(metas);
     }
+
+    // ─── Editar meta ───
+    let _editGoalId = null;
+    let _selEditGoalIcone = 'flight';
+    document.querySelectorAll('#modal_edit_goal .icon-opt').forEach(opt => {
+      opt.addEventListener('click', function () {
+        document.querySelectorAll('#modal_edit_goal .icon-opt').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        _selEditGoalIcone = this.dataset.icon;
+      });
+    });
+    function abrirEditarGoal(id_tipo) {
+      const m = _metasCache.find(x => x.id_tipo === id_tipo);
+      if (!m) return;
+      _editGoalId = id_tipo;
+      const d = parseMeta(m.nome);
+      _selEditGoalIcone = d.icone || 'flight';
+      document.getElementById('edit_goal_nome').value     = d.nome || '';
+      document.getElementById('edit_goal_objetivo').value = Number(m.saldo_objetivo || 0).toFixed(2).replace('.', ',');
+      document.getElementById('edit_goal_atual').value    = Number(m.saldo_atual || 0).toFixed(2).replace('.', ',');
+      document.getElementById('edit_goal_prazo').value    = m.data_limite || '';
+      document.querySelectorAll('#modal_edit_goal .icon-opt').forEach(o =>
+        o.classList.toggle('selected', o.dataset.icon === _selEditGoalIcone));
+      openModal('modal_edit_goal');
+    }
+    document.getElementById('btn_salvar_edit_goal').addEventListener('click', async function () {
+      if (!_editGoalId) return;
+      const nome     = document.getElementById('edit_goal_nome').value.trim();
+      const objetivo = parseFloat(document.getElementById('edit_goal_objetivo').value.replace(/\./g,'').replace(',','.'));
+      const atual    = parseFloat(document.getElementById('edit_goal_atual').value.replace(/\./g,'').replace(',','.')) || 0;
+      const prazo    = document.getElementById('edit_goal_prazo').value || null;
+      if (!nome || !objetivo) { alert('Preencha nome e valor alvo.'); return; }
+      this.disabled = true;
+      try {
+        await dbUpdateMeta(_editGoalId, {
+          nome: JSON.stringify({ nome, icone: _selEditGoalIcone }),
+          saldo_objetivo: objetivo, saldo_atual: atual, data_limite: prazo
+        });
+        _editGoalId = null;
+        closeModal('modal_edit_goal');
+        await carregarGoals();
+      } catch (e) { alert('Erro ao salvar: ' + e.message); }
+      finally { this.disabled = false; }
+    });
 
     // ─── Aporte ───
     function abrirAporte(id_tipo, saldo_atual, saldo_objetivo) {
