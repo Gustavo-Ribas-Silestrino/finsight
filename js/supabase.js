@@ -28,6 +28,71 @@ async function dbLogin(email, password) {
   return data;
 }
 
+/* ─── Recuperação de senha ─── */
+async function dbEnviarCodigoRecuperacao(email) {
+  const { data, error: selErr } = await _db
+    .from('cliente')
+    .select('id_cliente')
+    .eq('email', email)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (!data) throw new Error('Não encontramos uma conta com este e-mail.');
+
+  const { error } = await _db.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw error;
+}
+
+async function dbVerificarCodigoRecuperacao(email, token) {
+  const { data, error } = await _db.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) throw new Error('Código inválido ou expirado.');
+  return data;
+}
+
+async function dbRedefinirSenha(email, novaSenha) {
+  const { error } = await _db
+    .from('cliente')
+    .update({ password: novaSenha })
+    .eq('email', email);
+  if (error) throw error;
+  await _db.auth.signOut();
+}
+
+/* ─── Login social (Google / GitHub) ─── */
+async function dbLoginComProvider(provider) {
+  const { error } = await _db.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.href.split('#')[0],
+      scopes: provider === 'github' ? 'read:user user:email' : undefined,
+    },
+  });
+  if (error) throw error;
+}
+
+// Vincula o usuário autenticado via OAuth a um registro em "cliente",
+// criando-o automaticamente no primeiro acesso.
+async function dbFindOrCreateCliente(email, username) {
+  const { data: existente, error: selErr } = await _db
+    .from('cliente')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (existente) return existente;
+
+  const senha = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  const { data, error } = await _db
+    .from('cliente')
+    .insert([{ username: username || email.split('@')[0], email, password: senha }])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 /* ─── Contas / Carteiras ─── */
 async function dbGetContas(id_cliente) {
   const { data, error } = await _db

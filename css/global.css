@@ -2097,7 +2097,8 @@ textarea.field_input {
   padding: 0 20px;
   background: var(--bg);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .auth-page::before {
